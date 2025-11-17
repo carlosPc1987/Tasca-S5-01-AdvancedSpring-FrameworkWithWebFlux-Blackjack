@@ -1,0 +1,43 @@
+# ==============================================================
+# Configuración principal de la aplicación Blackjack
+# ==============================================================
+
+spring:
+  application:
+    name: blackjack-webflux
+
+  # ---------------- MySQL R2DBC (reactivo) ---------------------
+  r2dbc:
+    # Si corres local → usa localhost
+    # Si corres con Docker → docker-compose sobrescribe con variable
+    url: ${R2DBC_URL:r2dbc:mysql://localhost:3306/blackjack}
+    username: ${R2DBC_USER:root}
+    password: ${R2DBC_PASS:password}
+
+  sql:
+    init:
+      mode: always
+      platform: mysql
+
+  # ---------------- MongoDB ---------------------
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/blackjack}
+      database: blackjack
+
+# ---------------- Servidor ---------------------
+server:
+  port: ${SERVER_PORT:8080}
+
+# ---------------- Logging ---------------------
+logging:
+  level:
+    org.springframework: INFO
+    cat.itacademy.s05.t01.n01.blackjack: DEBUG
+
+# ---------------- Swagger / OpenAPI ---------------------
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
