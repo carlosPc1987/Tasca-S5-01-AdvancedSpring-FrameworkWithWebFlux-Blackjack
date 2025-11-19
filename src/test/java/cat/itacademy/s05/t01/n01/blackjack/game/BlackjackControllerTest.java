@@ -1,8 +1,9 @@
 package cat.itacademy.s05.t01.n01.blackjack.game;
 
 import cat.itacademy.s05.t01.n01.blackjack.controller.BlackjackController;
+import cat.itacademy.s05.t01.n01.blackjack.dto.request.GameActionRequest;
 import cat.itacademy.s05.t01.n01.blackjack.dto.request.GameCreationRequest;
-import cat.itacademy.s05.t01.n01.blackjack.dto.request.PlayerMoveRequest;
+import cat.itacademy.s05.t01.n01.blackjack.dto.request.PlayerMoveType;
 import cat.itacademy.s05.t01.n01.blackjack.dto.response.BlackjackGameResponse;
 import cat.itacademy.s05.t01.n01.blackjack.service.BlackjackGameService;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,6 +13,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class BlackjackControllerTest {
@@ -26,7 +29,7 @@ class BlackjackControllerTest {
     }
 
     @Test
-    void startGame_shouldReturnGameResponse() {
+    void createGame_shouldReturnGameResponse() {
         String playerName = "Luis";
         GameCreationRequest request = new GameCreationRequest();
         request.setPlayerName(playerName);
@@ -38,7 +41,7 @@ class BlackjackControllerTest {
 
         when(gameService.createGame(playerName)).thenReturn(Mono.just(mockResponse));
 
-        Mono<BlackjackGameResponse> result = gameController.startGame(request);
+        Mono<BlackjackGameResponse> result = gameController.createGame(request);
 
         StepVerifier.create(result)
                 .expectNextMatches(game -> game.getPlayerName().equals(playerName) && game.getId().equals("game1"))
@@ -48,7 +51,7 @@ class BlackjackControllerTest {
     }
 
     @Test
-    void fetchGame_shouldReturnGameResponse() {
+    void getGame_shouldReturnGameResponse() {
         String gameId = "game1";
         BlackjackGameResponse mockResponse = BlackjackGameResponse.builder()
                 .id(gameId)
@@ -57,7 +60,7 @@ class BlackjackControllerTest {
 
         when(gameService.getGame(gameId)).thenReturn(Mono.just(mockResponse));
 
-        Mono<BlackjackGameResponse> result = gameController.fetchGame(gameId);
+        Mono<BlackjackGameResponse> result = gameController.getGame(gameId);
 
         StepVerifier.create(result)
                 .expectNextMatches(game -> game.getId().equals(gameId))
@@ -67,32 +70,34 @@ class BlackjackControllerTest {
     }
 
     @Test
-    void makeMove_shouldReturnGameResponse() {
+    void playGame_shouldReturnGameResponse() {
         String gameId = "game1";
-        PlayerMoveRequest move = new PlayerMoveRequest();
+        GameActionRequest move = new GameActionRequest();
+        move.setAction(PlayerMoveType.HIT);
+
         BlackjackGameResponse mockResponse = BlackjackGameResponse.builder()
                 .id(gameId)
                 .playerName("Luis")
                 .build();
 
-        when(gameService.playMove(gameId, move)).thenReturn(Mono.just(mockResponse));
+        when(gameService.playMove(eq(gameId), any(GameActionRequest.class))).thenReturn(Mono.just(mockResponse));
 
-        Mono<BlackjackGameResponse> result = gameController.makeMove(gameId, move);
+        Mono<BlackjackGameResponse> result = gameController.playGame(gameId, move);
 
         StepVerifier.create(result)
                 .expectNextMatches(game -> game.getId().equals(gameId))
                 .verifyComplete();
 
-        verify(gameService, times(1)).playMove(gameId, move);
+        verify(gameService, times(1)).playMove(eq(gameId), any(GameActionRequest.class));
     }
 
     @Test
-    void removeGame_shouldReturnVoid() {
+    void deleteGame_shouldReturnVoid() {
         String gameId = "game1";
 
         when(gameService.deleteGame(gameId)).thenReturn(Mono.empty());
 
-        Mono<Void> result = gameController.removeGame(gameId);
+        Mono<Void> result = gameController.deleteGame(gameId);
 
         StepVerifier.create(result)
                 .verifyComplete();
@@ -119,5 +124,3 @@ class BlackjackControllerTest {
         verify(gameService, times(1)).getGamesByPlayer(playerName);
     }
 }
-
-

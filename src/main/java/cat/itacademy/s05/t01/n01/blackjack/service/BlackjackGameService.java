@@ -2,20 +2,25 @@ package cat.itacademy.s05.t01.n01.blackjack.service;
 
 import cat.itacademy.s05.t01.n01.blackjack.domain.mongo.Card;
 import cat.itacademy.s05.t01.n01.blackjack.domain.mongo.Game;
-import cat.itacademy.s05.t01.n01.blackjack.dto.request.PlayerMoveRequest;
+import cat.itacademy.s05.t01.n01.blackjack.domain.sql.Player;
+import cat.itacademy.s05.t01.n01.blackjack.dto.request.GameActionRequest;
 import cat.itacademy.s05.t01.n01.blackjack.dto.response.BlackjackGameResponse;
 import cat.itacademy.s05.t01.n01.blackjack.exception.*;
 import cat.itacademy.s05.t01.n01.blackjack.repository.mongo.GameRepository;
 import cat.itacademy.s05.t01.n01.blackjack.repository.sql.PlayerRepository;
 import cat.itacademy.s05.t01.n01.blackjack.utils.Deck;
 import cat.itacademy.s05.t01.n01.blackjack.utils.GameState;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 public class BlackjackGameService {
 
@@ -32,35 +37,54 @@ public class BlackjackGameService {
             return Mono.error(new AttributeInvalidException("El nombre del jugador no puede estar vacío"));
         }
 
-        return playerRepository.findByName(playerName)
-                .switchIfEmpty(Mono.error(new EntityNotFoundException("Jugador no encontrado")))
+        return playerRepository.findByName(playerName.trim())
+                .switchIfEmpty(Mono.defer(() -> {
+                    log.warn("Jugador '{}' no encontrado, creando nuevo jugador...", playerName);
+                    return playerRepository.save(Player.builder()
+                            .name(playerName.trim())
+                            .gamesPlayed(0)
+                            .gamesWon(0)
+                            .build());
+                }))
                 .flatMap(player -> {
-                    Deck deck = Deck.multipleDecks(2); // Baraja doble
+                    log.debug("Creando partida para jugador: {} (ID: {})", player.getName(), player.getId());
+
+                    Deck deck = Deck.multipleDecks(2);
                     List<Card> cards = new ArrayList<>(deck.getCards());
+
                     List<Card> playerHand = new ArrayList<>();
                     List<Card> dealerHand = new ArrayList<>();
+
+
                     playerHand.add(cards.remove(0));
                     dealerHand.add(cards.remove(0));
                     playerHand.add(cards.remove(0));
                     dealerHand.add(cards.remove(0));
 
-                    Game game = new Game();
-                    game.setPlayerName(player.getName());
-                    game.setDeck(new Deck(cards));
-                    game.setPlayerHand(playerHand);
-                    game.setDealerHand(dealerHand);
-                    game.setState(GameState.IN_PROGRESS);
+                    Game game = Game.builder()
+                            .playerName(player.getName())
+                            .playerId(player.getId().toString())
+                            .deck(new Deck(cards))
+                            .playerHand(playerHand)
+                            .dealerHand(dealerHand)
+                            .state(GameState.IN_PROGRESS)
+                            .createdAt(Instant.now())
+                            .updatedAt(Instant.now())
+                            .build();
 
                     return gameRepository.save(game);
                 })
-                .map(this::toGameResponse);
+                .map(this::toGameResponse)
+                .doOnError(error -> log.error("Error al crear partida: {}", error.getMessage()));
     }
+
     public Mono<BlackjackGameResponse> getGameById(String gameId) {
         return gameRepository.findById(gameId)
                 .switchIfEmpty(Mono.error(new EntityNotFoundException("Partida no encontrada")))
                 .map(this::toGameResponse);
     }
-    public Mono<BlackjackGameResponse> playMove(String gameId, PlayerMoveRequest move) {
+
+    public Mono<BlackjackGameResponse> playMove(String gameId, @Valid GameActionRequest move) {
         return gameRepository.findById(gameId)
                 .switchIfEmpty(Mono.error(new EntityNotFoundException("Partida no encontrada")))
                 .flatMap(game -> {
@@ -79,8 +103,7 @@ public class BlackjackGameService {
                     List<Card> dealerHand = game.getDealerHand();
 
                     game.getMoves().add(move);
-
-                    switch (move.getMoveType()) {
+                    switch (move.getAction()) {
                         case HIT -> {
                             if (!game.getDeck().getCards().isEmpty()) {
                                 playerHand.add(game.getDeck().getCards().remove(0));
@@ -101,6 +124,24 @@ public class BlackjackGameService {
                             else if (playerTotal < dealerTotal) game.setState(GameState.DEALER_WON);
                             else game.setState(GameState.TIE);
                         }
+                        case DOUBLE -> {
+
+                            if (!game.getDeck().getCards().isEmpty()) {
+                                playerHand.add(game.getDeck().getCards().remove(0));
+                            }
+                            while (calculateHandValue(dealerHand) < 17 && !game.getDeck().getCards().isEmpty()) {
+                                dealerHand.add(game.getDeck().getCards().remove(0));
+                            }
+
+                            int playerTotal = calculateHandValue(playerHand);
+                            int dealerTotal = calculateHandValue(dealerHand);
+
+                            if (playerTotal > 21) game.setState(GameState.DEALER_WON);
+                            else if (dealerTotal > 21) game.setState(GameState.PLAYER_WON);
+                            else if (playerTotal > dealerTotal) game.setState(GameState.PLAYER_WON);
+                            else if (playerTotal < dealerTotal) game.setState(GameState.DEALER_WON);
+                            else game.setState(GameState.TIE);
+                        }
                         default -> {
                             return Mono.error(new InvalidMoveException("Movimiento no soportado"));
                         }
@@ -108,6 +149,7 @@ public class BlackjackGameService {
 
                     game.setPlayerHand(playerHand);
                     game.setDealerHand(dealerHand);
+                    game.setUpdatedAt(Instant.now());
 
                     return gameRepository.save(game);
                 })

@@ -1,43 +1,45 @@
-# ==============================================================
-# Configuración principal de la aplicación Blackjack
-# ==============================================================
-
 spring:
   application:
     name: blackjack-webflux
 
   # ---------------- MySQL R2DBC (reactivo) ---------------------
   r2dbc:
-    # Si corres local → usa localhost
-    # Si corres con Docker → docker-compose sobrescribe con variable
-    url: ${R2DBC_URL:r2dbc:mysql://localhost:3306/blackjack}
+    url: ${R2DBC_URL:r2dbc:mysql://mysql-db:3306/blackjack}
     username: ${R2DBC_USER:root}
-    password: ${R2DBC_PASS:password}
-
-  sql:
-    init:
-      mode: always
-      platform: mysql
+    password: ${R2DBC_PASS:root}
 
   # ---------------- MongoDB ---------------------
   data:
     mongodb:
-      uri: ${MONGODB_URI:mongodb://localhost:27017/blackjack}
+      uri: ${MONGODB_URI:mongodb://mongodb:27017/blackjack}
       database: blackjack
 
 # ---------------- Servidor ---------------------
 server:
   port: ${SERVER_PORT:8080}
+  address: 0.0.0.0
 
 # ---------------- Logging ---------------------
 logging:
   level:
     org.springframework: INFO
+    org.springframework.data.mongodb: DEBUG
     cat.itacademy.s05.t01.n01.blackjack: DEBUG
+    cat.itacademy.s05.t01.n01.blackjack.controller: TRACE
+    cat.itacademy.s05.t01.n01.blackjack.service: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %highlight(%-5level) - %cyan([%thread]) - %logger{36} - %msg%n"
 
 # ---------------- Swagger / OpenAPI ---------------------
 springdoc:
   api-docs:
     path: /v3/api-docs
+    enabled: true
   swagger-ui:
     path: /swagger-ui.html
+    enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
+  packages-to-scan: cat.itacademy.s05.t01.n01.blackjack.controller
+  paths-to-match: /api/**

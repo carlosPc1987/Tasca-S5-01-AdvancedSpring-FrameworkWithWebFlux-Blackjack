@@ -1,6 +1,6 @@
 package cat.itacademy.s05.t01.n01.blackjack.domain.mongo;
 
-import cat.itacademy.s05.t01.n01.blackjack.dto.request.PlayerMoveRequest;
+import cat.itacademy.s05.t01.n01.blackjack.dto.request.GameActionRequest;
 import cat.itacademy.s05.t01.n01.blackjack.utils.Deck;
 import cat.itacademy.s05.t01.n01.blackjack.utils.GameState;
 import org.springframework.data.annotation.Id;
@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.*;
+
 
 @Document(collection = "games")
 @Data
@@ -28,8 +29,10 @@ public class Game {
     @Builder.Default
     private List<Card> dealerHand = new ArrayList<>();
     @Builder.Default
-    private List<PlayerMoveRequest> moves = new ArrayList<>();
+    private List<GameActionRequest> moves = new ArrayList<>();
 
     private Instant createdAt;
     private Instant updatedAt;
+
 }
+

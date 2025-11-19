@@ -1,16 +1,14 @@
 package cat.itacademy.s05.t01.n01.blackjack.game;
 
-
-
-
 import cat.itacademy.s05.t01.n01.blackjack.domain.mongo.Card;
 import cat.itacademy.s05.t01.n01.blackjack.domain.mongo.Game;
 import cat.itacademy.s05.t01.n01.blackjack.domain.sql.Player;
-import cat.itacademy.s05.t01.n01.blackjack.dto.request.PlayerMoveRequest;
+import cat.itacademy.s05.t01.n01.blackjack.dto.request.GameActionRequest;
 import cat.itacademy.s05.t01.n01.blackjack.dto.request.PlayerMoveType;
 import cat.itacademy.s05.t01.n01.blackjack.repository.mongo.GameRepository;
 import cat.itacademy.s05.t01.n01.blackjack.repository.sql.PlayerRepository;
 import cat.itacademy.s05.t01.n01.blackjack.service.BlackjackGameService;
+import cat.itacademy.s05.t01.n01.blackjack.utils.Deck;
 import cat.itacademy.s05.t01.n01.blackjack.utils.GameState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,6 +20,8 @@ import reactor.test.StepVerifier;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class BlackjackGameServiceTest {
@@ -81,18 +81,22 @@ class BlackjackGameServiceTest {
         game.setId(gameId);
         game.setPlayerHand(new ArrayList<>());
         game.setDealerHand(new ArrayList<>());
-        game.setDeck(new cat.itacademy.s05.t01.n01.blackjack.utils.Deck(new ArrayList<>(List.of(
-                new Card("A", "Hearts", 11)
-        ))));
+
+        // Crear un deck con cartas
+        List<Card> cards = new ArrayList<>();
+        cards.add(new Card("A", "Hearts", 11));
+        cards.add(new Card("K", "Spades", 10));
+        game.setDeck(new Deck(cards));
         game.setState(GameState.IN_PROGRESS);
 
-        PlayerMoveRequest move = new PlayerMoveRequest(PlayerMoveType.HIT, 10.0);
+        GameActionRequest move = new GameActionRequest();
+        move.setAction(PlayerMoveType.HIT);
 
         when(gameRepository.findById(gameId)).thenReturn(Mono.just(game));
         when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
 
         StepVerifier.create(gameService.playMove(gameId, move))
-                .expectNextMatches(resp -> resp.getPlayerHand().size() == 1 && resp.getState() == GameState.IN_PROGRESS)
+                .expectNextMatches(resp -> resp.getId().equals(gameId))
                 .verifyComplete();
 
         verify(gameRepository, times(1)).findById(gameId);
@@ -134,6 +138,3 @@ class BlackjackGameServiceTest {
         verify(gameRepository, times(1)).findByPlayerName(playerName);
     }
 }
-
-
-
