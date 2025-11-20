@@ -80,7 +80,7 @@ docker build -t blackjack-api .
 ### 2️⃣ Run the container
 
 ```bash
-docker run -p 8080:8080 --name blackjack-container blackjack-api
+docker run -p 8080:8081 --name blackjack-container blackjack-api
 ```
 
 ### 3️⃣ Run using Docker Compose (recommended)
@@ -94,7 +94,7 @@ This will:
 * Start **MySQL** in Docker
 * Start the **Blackjack API**
 * Automatically create the `player` table using `init.sql`
-* Expose the API on: **[http://localhost:8080](http://localhost:8080)**
+* Expose the API on: **[http://localhost:8081](http://localhost:8081)**
 
 ---
 
@@ -105,9 +105,14 @@ Once the application is running:
 📌 Open Swagger UI here:
 
 ```
-http://localhost:8080/swagger-ui.html
+http://localhost:8081/swagger-ui/index.html
 ```
+You can also access the API docs in JSON format:
 
+```
+http://localhost:8081/v3/api-docs/blackjack-public
+
+```
 You can test all endpoints directly from Swagger.
 
 ---
@@ -118,7 +123,7 @@ Below are example requests to test your Blackjack API.
 
 ### ✔️ Create a new player
 
-**POST** `http://localhost:8080/player`
+**POST** `http://localhost:8081/player`
 
 ```json
 {
@@ -128,29 +133,29 @@ Below are example requests to test your Blackjack API.
 
 ### ✔️ Start a Blackjack game for a player
 
-**POST** `http://localhost:8080/game/start/{playerId}`
+**POST** `http://localhost:8081/game/start/{playerId}`
 
 Example:
 
 ```
-POST http://localhost:8080/game/start/1
+POST http://localhost:8081/game/start/1
 ```
 
 ### ✔️ Draw a card
 
-**POST** `http://localhost:8080/game/hit/{playerId}`
+**POST** `http://localhost:8081/game/hit/{playerId}`
 
 ### ✔️ End the turn (stand)
 
-**POST** `http://localhost:8080/game/stand/{playerId}`
+**POST** `http://localhost:8081/game/stand/{playerId}`
 
 ### ✔️ Get player history (MongoDB)
 
-**GET** `http://localhost:8080/history/{playerId}`
+**GET** `http://localhost:8081/history/{playerId}`
 
 ### ✔️ List all players
 
-**GET** `http://localhost:8080/player`
+**GET** `http://localhost:8081/player`
 
 ---
 
@@ -192,8 +197,9 @@ src/
             │   └── PlayerServiceTest.java
             └── BlackjackApplicationTests.java
 
-```
 
+
+```
 ## 🤝 Contributing
 
 Pull requests are welcome.
@@ -208,3 +214,9 @@ Please open an issue before submitting changes.
 * Swagger and Postman allow you to test all API actions easily
 
 Enjoy your Blackjack API 🎲🃏
+
+API Documentation: http://localhost:8081/v3/api-docs/blackjack-public
+Generated server url: http://localhost:8081
+
+
+
